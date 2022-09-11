@@ -1,0 +1,123 @@
+---
+title: "Codigo ejemplo 1"
+output: word_document
+---
+# Comparación de resultados entre anova individual y manova
+
+```{r}
+library(heplots)
+library(car)#Manova
+repeticiones=500
+
+pvalormanovaPillaiT1=array(rep(0,repeticiones),repeticiones)
+
+manpwer=array(rep(0,8),8)
+manpwer1=array(rep(0,8),8)
+manpwer2=array(rep(0,8),8)
+manpwer3=array(rep(0,8),8)
+manpwer4=array(rep(0,8),8)
+
+I=3;J=3;m=20;
+mu1=4;mu2=5;mu3=8;
+alfa1=array(c(2,1,-3),dim=c(3,1))
+alfa2=array(c(2,1,-3),dim=c(3,1))
+alfa3=array(c(0,0,0),dim=c(3,1))
+beta1=array(c(-3,1,2),dim=c(3,1))
+beta2=array(c(-3,1,2),dim=c(3,1))
+beta3=array(c(0,0,0),dim=c(3,1))
+alfabeta1=array(c(3,1,-4,1,-3,2,-4,2,2),dim=c(3,3))
+alfabeta2=array(c(3,1,-4,1,-3,2,-4,2,2),dim=c(3,3))
+alfabeta3=array(c(0,0,0,0,0,0,0,0,0),dim=c(3,3))
+y11=array(runif(I*J*m,min=0,max=1))
+y22=array(runif(I*J*m,min=0,max=1))
+y33=array(runif(I*J*m,min=0,max=1))
+library(mvnfast)
+sigma1=10
+sigma2=10
+sigma3=10
+corrcoef12=-0.1
+corrcoef13=0
+
+corrcoef23=corrcoef13#Matriz tiene que ser definida positiva!
+x=matrix(c(sigma1^2,sigma1*sigma2*corrcoef12,sigma1*sigma2*corrcoef13,
+           sigma1*sigma2*corrcoef12,sigma2^2,
+           sigma1*sigma2*corrcoef23,sigma1*sigma2*corrcoef13,sigma1*sigma2*corrcoef23,
+           sigma3^2),3,3)
+library(Matrix)
+nearPD(x)
+for(corrcoef13 in seq(0.1,0.3,0.1)){
+t=1
+corrcoef23=corrcoef13#Matriz tiene que ser definida positiva!
+for(corrcoef12 in seq(-0.7,0.7,0.2)){
+  s=0
+  r=1
+  repeat{
+    dt2<-rmvn(m*I*J,mu=c(0,0,0),matrix(c(sigma1^2,sigma1*sigma2*corrcoef12,sigma1*sigma2*corrcoef13,
+                                         sigma1*sigma2*corrcoef12,sigma2^2,sigma1*sigma2*corrcoef23,
+                                         sigma1*sigma2*corrcoef13,sigma1*sigma2*corrcoef23,sigma3^2),3,3))
+    Tratamiento1=array(runif(I*J*m,min=0,max=1),dim=c(I*J*m))
+    Tratamiento2=array(runif(I*J*m,min=0,max=1),dim=c(I*J*m))
+    contador=0
+    for (i in 1:I)
+    {
+      for (j in 1:J)
+      {
+        for (k in 1:m)
+        {
+          contador=contador+1
+          y11[contador]=mu1+alfa1[i]+beta1[j]+alfabeta1[i,j]+dt2[contador,1]
+          y22[contador]=mu2+alfa2[i]+beta2[j]+alfabeta2[i,j]+dt2[contador,2]
+          y33[contador]=mu3+alfa3[i]+beta3[j]+alfabeta3[i,j]+dt2[contador,3]
+          Tratamiento1[contador]=i
+          Tratamiento2[contador]=j
+        }
+      }
+    }
+    Tratamiento1=factor(Tratamiento1,labels=c(1,2,3))
+    Tratamiento2=factor(Tratamiento2,labels=c(1,2,3))
+    Output=cbind(y11,y22,y33)
+    mod=lm(Output~Tratamiento1*Tratamiento2)
+    
+    s=s+1
+    m1=aov(y11~Tratamiento1*Tratamiento2)
+    m2=aov(y22~Tratamiento1*Tratamiento2)
+    m3=aov(y33~Tratamiento1*Tratamiento2)
+    m5=manova(Output~Tratamiento1*Tratamiento2)
+  
+    pvalormanovaPillaiT1[s]=summary(m5,tol=0)$stat[21]
+   
+    if(r==repeticiones) break
+    r=r+1
+  }
+  alpha=0.05
+  manpwer[t] <- length(which(pvalormanovaPillaiT1[1:r]<alpha))/r
+  t=t+1
+}
+if(corrcoef13==0.1){
+  manpwer1=manpwer
+}
+if(corrcoef13==0.2){
+  manpwer2=manpwer
+}
+if(corrcoef13==0.3){
+  manpwer3=manpwer
+}
+}
+
+
+correlacion=c(-0.7,-0.5,-0.3,-0.1,0.1,0.3,0.5,0.7)
+lo1 <- loess(manpwer1~correlacion)
+lo2 <- loess(manpwer2~correlacion)
+lo3 <- loess(manpwer3~correlacion)
+plot(correlacion,manpwer1,pch = 16, cex = 1, col = "black",ylab="Poder MANOVA",xlab="Correlación",
+     ylim=c(0,1))
+points(correlacion,manpwer2,pch = 17, cex = 1, col = "blue")
+points(correlacion,manpwer3,pch = 18, cex = 1, col = "red")
+lines(correlacion,predict(lo1), col='black', lwd=2)
+lines(correlacion,predict(lo2), col='blue', lwd=2)
+lines(correlacion,predict(lo3), col='red', lwd=2)
+legend(0.4, 0.3, legend=c("r=0.1","r=0.2","r=0.3"),
+       col=c("black", "blue","red"), lty=1, cex=0.8,
+       box.lty=0)
+```
+

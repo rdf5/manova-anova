@@ -1,0 +1,122 @@
+---
+title: "Codigo ejemplo 1"
+output: html_document
+---
+# Comparación de resultados entre anova individual y manova
+
+```{r}
+library(MASS)
+library(heplots)#boxM
+library(kableExtra)
+repeticiones=200
+Fanovay1=array(rep(0,repeticiones),repeticiones)
+Fanovay2=array(rep(0,repeticiones),repeticiones)
+FmanovaPillai=array(rep(0,repeticiones),repeticiones)
+pvaloranovay1=array(rep(0,repeticiones),repeticiones)
+pvaloranovay2=array(rep(0,repeticiones),repeticiones)
+pvalormanovaPillai=array(rep(0,repeticiones),repeticiones)
+Fanovay1tabla=array(rep(0,repeticiones),10)
+Fanovay2tabla=array(rep(0,repeticiones),10)
+FmanovatablaPillai=array(rep(0,repeticiones),10)
+pvaloranovay1tabla=array(rep(0,repeticiones),10)
+pvaloranovay2tabla=array(rep(0,repeticiones),10)
+pvalormanovatablaPillai=array(rep(0,repeticiones),10)
+k=1
+for (corrcoef in seq(-0.9, 0.9, 0.2)) {
+i=1
+j=0
+repeat{
+mu11=2;mu12=5;mu21=4;mu22=40;
+  nmues=100;
+  errormu=c(0,0)
+  sigma1=10;sigma2=10;
+  sigma=array(c(sigma1^2,sigma1*sigma2*corrcoef,sigma1*sigma2*corrcoef,sigma2^2),c(2,2))
+  error=mvrnorm(n=nmues,errormu,sigma,tol=1e-6,empirical=FALSE,EISPACK = FALSE)
+  y1=array(rep(0,nmues),nmues)
+  y2=array(rep(0,nmues),nmues)
+  y1[1:(nmues/2)]=mu11+error[1:(nmues/2),1]
+  y2[1:(nmues/2)]=mu21+error[1:(nmues/2),2]
+  y1[((nmues/2)+1):nmues]=mu12+error[((nmues/2)+1):nmues,1]
+  y2[((nmues/2)+1):nmues]=mu22+error[((nmues/2)+1):nmues,2]
+  Tratamiento=c(rep(1,nmues/2),rep(2,nmues/2))
+  Tratamiento=factor(Tratamiento,labels=c(1,2))
+  Tratamiento=factor(Tratamiento,labels=c(1,2))
+  
+  Output=cbind(y1,y2)
+  
+  if((length(which(Tratamiento==2))>2)&(length(which(Tratamiento==1))>2)){
+    #No deja hacer el boxM si el numero de variables dependientes es mayor o igual que las observaciones
+    #en uno de los dos grupos
+    if((boxM(Output,Tratamiento)$p.value>0.05)&&(leveneTest(y1~Tratamiento)$`Pr(>F)`[[1]]>0.05)
+       &&(leveneTest(y2~Tratamiento)$`Pr(>F)`[[1]]>0.05)){
+      j=j+1
+      m1=aov(y1~Tratamiento)
+      m2=aov(y2~Tratamiento)
+      m3=manova(Output~Tratamiento)
+      Fanovay1[j]=summary(m1)[[1]][["F value"]][[1]] 
+      Fanovay2[j]=summary(m2)[[1]][["F value"]][[1]] 
+      FmanovaPillai[j]=summary(m3)$stat[5]
+      pvaloranovay1[j]=summary(m1)[[1]][["Pr(>F)"]][[1]] 
+      pvaloranovay2[j]=summary(m2)[[1]][["Pr(>F)"]][[1]] 
+      pvalormanovaPillai[j]=summary(m3)$stat[11]
+      #Hay que tener en cuenta que no todas las replicaciones cumplen el if
+    }
+  }
+  if(i==repeticiones) break
+  i=i+1
+}
+Fanovay1tabla[k]=mean(Fanovay1[1:j])
+Fanovay2tabla[k]=mean(Fanovay2[1:j])
+FmanovatablaPillai[k]=mean(FmanovaPillai[1:j])
+pvaloranovay1tabla[k]=mean(pvaloranovay1[1:j])
+pvaloranovay2tabla[k]=mean(pvaloranovay2[1:j])
+pvalormanovatablaPillai[k]=mean(pvalormanovaPillai[1:j])
+k=k+1
+}
+
+fila21=c(round(Fanovay1tabla[1],3),round(Fanovay1tabla[2],3),round(Fanovay1tabla[3],3),
+         round(Fanovay1tabla[4],3),round(Fanovay1tabla[5],3),round(Fanovay1tabla[6],3),
+         round(Fanovay1tabla[7],3),round(Fanovay1tabla[8],3),round(Fanovay1tabla[9],3),
+         round(Fanovay1tabla[10],3))
+fila31=c(round(pvaloranovay1tabla[1],3),round(pvaloranovay1tabla[2],3),round(pvaloranovay1tabla[3],3),
+        round(pvaloranovay1tabla[4],3),round(pvaloranovay1tabla[5],3),round(pvaloranovay1tabla[6],3),
+        round(pvaloranovay1tabla[7],3),round(pvaloranovay1tabla[8],3),round(pvaloranovay1tabla[9],3),
+        round(pvaloranovay1tabla[10],3))
+
+fila22=c(round(Fanovay2tabla[1],3),round(Fanovay2tabla[2],3),round(Fanovay2tabla[3],3),
+         round(Fanovay2tabla[4],3),round(Fanovay2tabla[5],3),round(Fanovay2tabla[6],3),
+         round(Fanovay2tabla[7],3),round(Fanovay2tabla[8],3),round(Fanovay2tabla[9],3),
+         round(Fanovay2tabla[10],3))
+fila32=c(round(pvaloranovay2tabla[1],3),round(pvaloranovay2tabla[2],3),round(pvaloranovay2tabla[3],3),
+         round(pvaloranovay2tabla[4],3),round(pvaloranovay2tabla[5],3),round(pvaloranovay2tabla[6],3),
+         round(pvaloranovay2tabla[7],3),round(pvaloranovay2tabla[8],3),round(pvaloranovay2tabla[9],3),
+         round(pvaloranovay2tabla[10],3))
+tabla2=rbind(fila21,fila31,fila22,fila32)
+
+rownames(tabla2)=c("F","p-valor","F","p-valor")
+
+kbl(tabla2, caption = "Group Rows",col.names=c("$r_{y1y2}= -0.9$", "$r_{y1y2}= -0.7$", "$r_{y1y2}= -0.5$","$r_{y1y2}= -0.3$", "$r_{y1y2}= -0.1$","$r_{y1y2}= 0.1$", "$r_{y1y2}= 0.3$","$r_{y1y2}= 0.5$","$r_{y1y2}= 0.7$","$r_{y1y2}= 0.9$")) %>%
+  kable_paper("striped", full_width = F) %>%
+  pack_rows("ANOVA y1", 1, 2) %>%
+  pack_rows("ANOVA y2", 3, 4)
+
+fila23=c(round(FmanovatablaPillai[1],3),round(FmanovatablaPillai[2],3),round(FmanovatablaPillai[3],3),
+         round(FmanovatablaPillai[4],3),round(FmanovatablaPillai[5],3),round(FmanovatablaPillai[6],3),
+         round(FmanovatablaPillai[7],3),round(FmanovatablaPillai[8],3),round(FmanovatablaPillai[9],3),
+         round(FmanovatablaPillai[10],3))
+fila33=c(round(pvalormanovatablaPillai[1],3),round(pvalormanovatablaPillai[2],3),
+         round(pvalormanovatablaPillai[3],3),round(pvalormanovatablaPillai[4],3),
+         round(pvalormanovatablaPillai[5],3),round(pvalormanovatablaPillai[6],3),
+         round(pvalormanovatablaPillai[7],3),round(pvalormanovatablaPillai[8],3),
+         round(pvalormanovatablaPillai[9],3),round(pvalormanovatablaPillai[10],3))
+
+tabla3=rbind(fila23,fila33)
+
+rownames(tabla3)=c("F","p-valor")
+
+knitr::kable(tabla3, caption = "Group Rows",col.names=c("$r_{y1y2}= -0.9$", "$r_{y1y2}= -0.7$", "$r_{y1y2}= -0.5$","$r_{y1y2}= -0.3$", "$r_{y1y2}= -0.1$","$r_{y1y2}= 0.1$", "$r_{y1y2}= 0.3$","$r_{y1y2}= 0.5$","$r_{y1y2}= 0.7$","$r_{y1y2}= 0.9$")) %>%
+  kable_paper("striped", full_width = F) %>%
+  pack_rows("Pillai", 1, 2) 
+
+```
+

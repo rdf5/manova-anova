@@ -1,0 +1,103 @@
+---
+title: "Codigo ejemplo 1"
+output: word_document
+---
+# Comparación de resultados entre anova individual y manova
+
+```{r}
+library(MASS)
+library(heplots)#boxM
+library(kableExtra)
+repeticiones=200
+Fanovay1=array(rep(0,repeticiones),repeticiones)
+Fanovay2=array(rep(0,repeticiones),repeticiones)
+Fmanova=array(rep(0,repeticiones),repeticiones)
+pvaloranovay1=array(rep(0,repeticiones),repeticiones)
+pvaloranovay2=array(rep(0,repeticiones),repeticiones)
+pvalormanova=array(rep(0,repeticiones),repeticiones)
+Fanovay1tabla=array(rep(0,repeticiones),10)
+Fanovay2tabla=array(rep(0,repeticiones),10)
+Fmanovatabla=array(rep(0,repeticiones),10)
+pvaloranovay1tabla=array(rep(0,repeticiones),10)
+pvaloranovay2tabla=array(rep(0,repeticiones),10)
+pvalormanovatabla=array(rep(0,repeticiones),10)
+manpval=array(rep(0,repeticiones),repeticiones)
+manpwer=array(rep(0,repeticiones),10)
+anovapwer1=array(rep(0,repeticiones),10)
+anovapwer2=array(rep(0,repeticiones),10)
+k=1
+for (corrcoef in seq(-0.9, 0.9, 0.2)) {
+i=1
+j=0
+repeat{
+  mu11=2;mu12=8;mu21=4;mu22=10;
+  nmues=100;
+  errormu=c(0,0)
+  sigma1=10;sigma2=10;
+  sigma=array(c(sigma1^2,sigma1*sigma2*corrcoef,sigma1*sigma2*corrcoef,sigma2^2),c(2,2))
+  error=mvrnorm(n=nmues,errormu,sigma,tol=1e-6,empirical=FALSE,EISPACK = FALSE)
+  y1=array(rep(0,nmues),nmues)
+  y2=array(rep(0,nmues),nmues)
+  y1[1:(nmues/2)]=mu11+error[1:(nmues/2),1]
+  y2[1:(nmues/2)]=mu21+error[1:(nmues/2),2]
+  y1[((nmues/2)+1):nmues]=mu12+error[((nmues/2)+1):nmues,1]
+  y2[((nmues/2)+1):nmues]=mu22+error[((nmues/2)+1):nmues,2]
+  Tratamiento=c(rep(1,nmues/2),rep(2,nmues/2))
+  Tratamiento=factor(Tratamiento,labels=c(1,2))
+  Tratamiento=factor(Tratamiento,labels=c(1,2))
+  
+  Output=cbind(y1,y2)
+  
+  if((length(which(Tratamiento==2))>2)&(length(which(Tratamiento==1))>2)){
+    #No deja hacer el boxM si el numero de variables dependientes es mayor o igual que las observaciones
+    #en uno de los dos grupos
+    if((boxM(Output,Tratamiento)$p.value>0.05)&&(leveneTest(y1~Tratamiento)$`Pr(>F)`[[1]]>0.05)
+       &&(leveneTest(y2~Tratamiento)$`Pr(>F)`[[1]]>0.05)){
+      j=j+1
+        m1=aov(y1~Tratamiento)
+  m2=aov(y2~Tratamiento)
+  m3=manova(Output~Tratamiento)
+  mod=lm(Output~Tratamiento)
+  Fanovay1[i]=summary(m1)[[1]][["F value"]][[1]] 
+  Fanovay2[i]=summary(m2)[[1]][["F value"]][[1]] 
+  Fmanova[i]=summary(m3)$stat[5]
+  pvaloranovay1[i]=summary(m1)[[1]][["Pr(>F)"]][[1]] 
+  pvaloranovay2[i]=summary(m2)[[1]][["Pr(>F)"]][[1]] 
+  pvalormanova[i]=summary(m3)$stat[11]
+  alpha=0.05
+  manp <- summary(manova(m3))$stat[11]
+  manpval[i] <- manp
+      #Hay que tener en cuenta que no todas las replicaciones cumplen el if
+    }
+  }
+  if(i==repeticiones) break
+  i=i+1
+}
+manpwer[k] <- length(which(manpval[1:i]<alpha))/i
+anovapwer1[k]=length(which(pvaloranovay1[1:i]<alpha))/i
+anovapwer2[k]=length(which(pvaloranovay2[1:i]<alpha))/i
+Fanovay1tabla[k]=mean(Fanovay1)
+Fanovay2tabla[k]=mean(Fanovay2)
+Fmanovatabla[k]=mean(Fmanova)
+pvalormanovatabla[k]=mean(pvalormanova)
+pvaloranovay2tabla[k]=mean(pvaloranovay2)
+pvaloranovay1tabla[k]=mean(pvaloranovay1)
+k=k+1
+}
+#Poder MANOVA vs ANOVA
+correlacion=c(-0.9,-0.7,-0.5,-0.3,-0.1,0.1,0.3,0.5,0.7,0.9)
+lo <- loess(manpwer~correlacion)
+lo1 <- loess(anovapwer1~correlacion)
+lo2 <- loess(anovapwer2~correlacion)
+plot(correlacion,manpwer,pch = 16, cex = 1, col = "black",ylab="Poder MANOVA vs ANOVA",xlab="Correlación",
+     ylim=c(0,1))
+points(correlacion,anovapwer1,pch = 17, cex = 1, col = "red")
+points(correlacion,anovapwer2,pch = 18, cex = 1, col = "blue")
+lines(correlacion,predict(lo), col='black', lwd=2)
+lines(correlacion,predict(lo1), col='red', lwd=2)
+lines(correlacion,predict(lo2), col='blue', lwd=2)
+legend(0.4, 0.2, legend=c("MANOVA","ANOVA y2"),
+       col=c("black","blue"), lty=1, cex=0.8,
+       box.lty=0)
+```
+
