@@ -1,0 +1,66 @@
+---
+title: "Untitled"
+output: word_document
+---
+```{r}
+library(heplots)
+library(car)#Manova
+I=3;J=3;m=20;
+mu1=4;mu2=5;mu3=8;
+alfa1=array(c(0,1,-1),dim=c(3,1))
+alfa2=array(c(1,0,-1),dim=c(3,1))
+alfa3=array(c(10,-15,5),dim=c(3,1))
+beta1=array(c(1,-1,0),dim=c(3,1))
+beta2=array(c(0,-1,1),dim=c(3,1))
+beta3=array(c(9,3,-12),dim=c(3,1))
+alfabeta1=array(c(1,0,-1,0,-1,1,-1,1,0),dim=c(3,3))
+alfabeta2=array(c(0,1,-1,-1,0,1,1,-1,0),dim=c(3,3))
+alfabeta3=array(c(14,-8,-6,-7,-3,10,-7,11,-4),dim=c(3,3))
+y11=array(runif(I*J*m,min=0,max=1))
+y22=array(runif(I*J*m,min=0,max=1))
+y33=array(runif(I*J*m,min=0,max=1))
+library(mvnfast)
+sigma1=10
+sigma2=10
+sigma3=10
+corrcoef12=-0.7
+corrcoef13=0.3
+corrcoef23=0.3#Matriz tiene que ser definida positiva!
+x=matrix(c(sigma1^2,sigma1*sigma2*corrcoef12,sigma1*sigma2*corrcoef13,
+           sigma1*sigma2*corrcoef12,sigma2^2,
+           sigma1*sigma2*corrcoef23,sigma1*sigma2*corrcoef13,sigma1*sigma2*corrcoef23,
+           sigma3^2),3,3)
+dt2<-rmvn(m*I*J,mu=c(0,0,0),matrix(c(sigma1^2,sigma1*sigma2*corrcoef12,sigma1*sigma2*corrcoef13,
+                                     sigma1*sigma2*corrcoef12,sigma2^2,sigma1*sigma2*corrcoef23,
+                                     sigma1*sigma2*corrcoef13,sigma1*sigma2*corrcoef23,sigma3^2),3,3))
+Tratamiento1=array(runif(I*J*m,min=0,max=1),dim=c(I*J*m))
+Tratamiento2=array(runif(I*J*m,min=0,max=1),dim=c(I*J*m))
+contador=0
+for (i in 1:I)
+{
+  for (j in 1:J)
+  {
+    for (k in 1:m)
+    {
+      contador=contador+1
+      y11[contador]=mu1+alfa1[i]+beta1[j]+alfabeta1[i,j]+dt2[contador,1]
+      y22[contador]=mu2+alfa2[i]+beta2[j]+alfabeta2[i,j]+dt2[contador,2]
+      y33[contador]=mu3+alfa3[i]+beta3[j]+alfabeta3[i,j]+dt2[contador,3]
+      Tratamiento1[contador]=i
+      Tratamiento2[contador]=j
+    }
+  }
+}
+Tratamiento1=factor(Tratamiento1,labels=c(1,2,3))
+Tratamiento2=factor(Tratamiento2,labels=c(1,2,3))
+Output=cbind(y11,y22,y33)
+m=manova(Output~Tratamiento1*Tratamiento2)
+summary(m)
+tabla=data.frame(Tratamiento1,Tratamiento2,Output[,1:2])
+dataEllipse(tabla[,3], tabla[,4], groups = Tratamiento1,levels=0.9,center.pch=19,
+            center.cex=1.5, plot.points=TRUE,fill=TRUE,fill.alpha=0.1,xlab="y1",ylab="y2",
+            pch=c(1,2,3),xlim=c(-40,40),ylim=c(-35,35))
+
+
+```
+

@@ -1,0 +1,56 @@
+---
+title: "Codigo ejemplo 1"
+output: html_document
+---
+# Comparación de resultados entre anova individual y manova
+
+```{r}
+library(MASS)
+library(heplots)#boxM
+mu11=2;mu12=5;mu21=4;mu22=7;
+nmues=100;
+  errormu=c(0,0)
+  corrcoef=0.9
+  sigma1=10;sigma2=10;
+  sigma=array(c(sigma1^2,sigma1*sigma2*corrcoef,sigma1*sigma2*corrcoef,sigma2^2),c(2,2))
+  error=mvrnorm(n=nmues,errormu,sigma,tol=1e-6,empirical=FALSE,EISPACK = FALSE)
+  y1=array(rep(0,nmues),nmues)
+  y2=array(rep(0,nmues),nmues)
+  y1[1:(nmues/2)]=mu11+error[1:(nmues/2),1]
+  y2[1:(nmues/2)]=mu21+error[1:(nmues/2),2]
+  y1[((nmues/2)+1):nmues]=mu12+error[((nmues/2)+1):nmues,1]
+  y2[((nmues/2)+1):nmues]=mu22+error[((nmues/2)+1):nmues,2]
+  Tratamiento=c(rep(1,nmues/2),rep(2,nmues/2))
+  Tratamiento=factor(Tratamiento,labels=c(1,2))
+  
+  Output=cbind(y1,y2)
+
+m1=aov(y1~Tratamiento)
+m2=aov(y2~Tratamiento)
+m3=manova(Output~Tratamiento)
+summary(m1)[[1]][["F value"]][[1]] 
+summary(m2)[[1]][["F value"]][[1]] 
+summary(m3)$stat[5]
+mod=lm(Output~Tratamiento)
+library(car)
+summary(Manova(mod))
+det(summary(Manova(mod))$SSPE)
+det(summary(Manova(mod))$multivariate.tests$Tratamiento$SSPH+summary(Manova(mod))$SSPE)
+summary(m3,test="Wilks")$stat[3]
+summary(Manova(mod))$multivariate.tests$Tratamiento$SSPH
+summary(Manova(mod))$SSPE
+PESy1=summary(Manova(mod))$multivariate.tests$Tratamiento$SSPH[1,1]/
+  (summary(Manova(mod))$SSPE[1,1]+summary(Manova(mod))$multivariate.tests$Tratamiento$SSPH[1,1])
+PESy2=summary(Manova(mod))$multivariate.tests$Tratamiento$SSPH[2,2]/
+  (summary(Manova(mod))$SSPE[2,2]+summary(Manova(mod))$multivariate.tests$Tratamiento$SSPH[2,2])
+PESy1
+PESy2
+#Elipsoides 95%
+library(car)
+tabla=data.frame(Tratamiento,Output)
+dataEllipse(tabla[,2], tabla[,3], groups = Tratamiento,levels=0.8,center.pch=19,
+            center.cex=1.5, plot.points=TRUE,fill=TRUE,fill.alpha=0.1,xlab="y1",ylab="y2",
+            pch=c(1,2),xlim=c(-40,40),ylim=c(-35,35))
+
+```
+
